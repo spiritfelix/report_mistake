@@ -1,0 +1,5 @@
+name = Report mistake
+description = Report mistake to the admin of the site.
+core = 7.x
+dependencies[]=ctools
+configure = admin/config/report_mistake

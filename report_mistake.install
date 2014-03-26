@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * @file
+ * Install file.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function report_mistake_uninstall() {
+  // Delete variables.
+  variable_del('report_mistake_content_types');
+  variable_del('report_mistake_field_types');
+}
+
+/**
+ * Implements hook_schema().
+ */
+function report_mistake_schema() {
+  $schema['report_mistake'] = array(
+    'description' => 'Stores the reported mistakes.',
+    'fields' => array(
+      'report_id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Primary Key: The id of the report.',
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {node}.nid of the node.',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {user}.uid of the user.',
+      ),
+      'field_name' => array(
+        'description' => 'The name of the field.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'delta' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The index of the value in field.',
+      ),
+      'value' => array(
+        'description' => 'The new value of the field.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'link' => array(
+        'description' => 'The reference link.',
+        'type' => 'varchar',
+        'length' => 200,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The time that the report was created, as a Unix timestamp.',
+      ),
+      'status' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+        'description' => 'The published status of a comment. (0 = New, 1 = Fixed, 2 = Ignored)',
+      ),
+      'op_uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {user}.uid of the operate user.',
+      ),
+    ),
+    'primary key' => array('report_id'),
+  );
+
+  return $schema;
+}

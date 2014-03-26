@@ -1,0 +1,280 @@
+<?php
+/**
+ * @file
+ * Module file.
+ */
+
+define('REPORT_MISTAKE_VERSION', '7.x-1.x');
+define('REPORT_MISTAKE_MENU_PATH', 'admin/config/report_mistake');
+define('REPORT_MISTAKE_MENU_DEPTH', 4);
+define('REPORT_MISTAKE_TABLE', 'report_mistake');
+define('REPORT_MISTAKE_STATUS_NEW', 0);
+define('REPORT_MISTAKE_STATUS_FIXED', 1);
+define('REPORT_MISTAKE_STATUS_IGNORE', 2);
+
+/**
+ * Implements hook_menu().
+ */
+function report_mistake_menu() {
+  $items[REPORT_MISTAKE_MENU_PATH] = array(
+    'title' => 'Report Mistake',
+    'page callback' => 'report_mistake_admin_list',
+    'page arguments' => array(),
+    'access arguments' => array('admin report mistake'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'report_mistake.admin.inc',
+  );
+  $items[REPORT_MISTAKE_MENU_PATH . '/list'] = array(
+    'title' => 'Report Mistake',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
+  );
+  $items[REPORT_MISTAKE_MENU_PATH . '/history'] = array(
+    'title' => 'History',
+    'page callback' => 'report_mistake_admin_history',
+    'page arguments' => array(),
+    'access arguments' => array('admin report mistake'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'report_mistake.admin.inc',
+    'weight' => 1,
+  );
+  $items[REPORT_MISTAKE_MENU_PATH . '/types'] = array(
+    'title' => 'Set Content Type',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('report_mistake_types_admin_form'),
+    'access arguments' => array('admin report mistake'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'report_mistake.admin.inc',
+    'weight' => 2,
+  );
+  $items['report_mistake/report/%ctools_js/%/%'] = array(
+    'page callback' => 'report_mistake_ajax_report',
+    'page arguments' => array(2, 3, 4),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  $items['report_mistake/admin/%ctools_js/%/%'] = array(
+    'page callback' => 'report_mistake_ajax_admin',
+    'page arguments' => array(2, 3, 4),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'report_mistake.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function report_mistake_permission() {
+  return array(
+    'admin report mistake' => array(
+      'title' => t('Administer report mistake'),
+      'restrict access' => TRUE,
+    ),
+    'report mistake' => array(
+      'title' => t('Report Mistake'),
+    ),
+  );
+}
+
+/**
+ * Get content types to display "report mistake" link.
+ */
+function report_mistake_get_types($type = 'content') {
+  if ($type == 'field') {
+    $return_types = variable_get('report_mistake_field_types', array(''));
+  }
+  else {
+    $return_types = variable_get('report_mistake_content_types', array(''));
+  }
+  $rtn = array();
+  foreach ($return_types as $value) {
+    if ($value) {
+      $rtn[] = $value;
+    }
+  }
+  return $rtn;
+}
+
+/**
+ * Implements hook_field_attach_view_alter().
+ */
+function report_mistake_field_attach_view_alter(&$output, $context) {
+  if (user_access('report mistake')) {
+    $content_types = report_mistake_get_types('content');
+    $field_types = report_mistake_get_types('field');
+    ctools_include('ajax');
+    ctools_include('modal');
+    ctools_modal_add_js();
+    // Create our own javascript that will be used to theme a modal.
+    $report_mistake_style = array(
+      'ctools-report-mistake-style' => array(
+        'modalSize' => array(
+          'type' => 'fixed',
+          'width' => 500,
+          'height' => 300,
+          'addWidth' => 20,
+          'addHeight' => 15,
+        ),
+        'modalOptions' => array(
+          'opacity' => .5,
+          'background-color' => '#000',
+        ),
+        'animation' => 'fadeIn',
+        'modalTheme' => 'ReportMistakeModal',
+        'throbber' => theme(
+          'image',
+          array(
+            'path' => ctools_image_path('ajax-loader.gif', 'ctools_ajax_sample'),
+            'alt' => t('Loading...'),
+            'title' => t('Loading'),
+          )
+        ),
+      ),
+    );
+    drupal_add_js($report_mistake_style, 'setting');
+    ctools_add_js('report_mistake', 'report_mistake');
+    ctools_add_css('report_mistake', 'report_mistake');
+    if ($context['entity_type'] == 'node' && in_array($context['entity']->type, $content_types)) {
+      foreach (element_children($output) as $field_name) {
+        if (in_array($output[$field_name]['#field_type'], $field_types)) {
+          $nid = $context['entity']->nid;
+          $link_text = t('Report mistake');
+          $items = $output[$field_name]['#items'];
+          foreach ($items as $key => $item) {
+            $link = ctools_modal_text_button($link_text, 'report_mistake/report/ajax/' . $field_name . '/' . $nid . '/' . $key, $link_text, 'ctools-modal-ctools-report-mistake-style');
+            $suffix = '<span class="mistake ' . $field_name . '">' . $link . '</span>';
+            $output[$field_name][$key]['#suffix'] = $suffix;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function report_mistake_node_view($node, $view_mode, $langcode) {
+  $types = report_mistake_get_types();
+  if (in_array($node->type, $types)) {
+    ctools_include('modal');
+    ctools_modal_add_js();
+  }
+}
+
+/**
+ * Report mistake ajax process.
+ */
+function report_mistake_ajax_report($ajax, $field, $nid, $delta = 0) {
+  if ($ajax) {
+    ctools_include('ajax');
+    ctools_include('modal');
+    $form_state = array(
+      'ajax' => TRUE,
+      'title' => t('Report Mistake Form'),
+      'field' => $field,
+      'nid' => $nid,
+      'delta' => $delta,
+    );
+    $output = ctools_modal_form_wrapper('report_mistake_form', $form_state);
+    if (!empty($form_state['ajax_commands'])) {
+      $output = $form_state['ajax_commands'];
+    }
+    print ajax_render($output);
+    drupal_exit();
+  }
+  else {
+    return drupal_get_form('report_mistake_form');
+  }
+}
+
+/**
+ * Implements hook_form().
+ */
+function report_mistake_form($form, $form_state) {
+  $form = array();
+  if (isset($form_state['nid']) && is_numeric($form_state['nid'])) {
+    $nid = $form_state['nid'];
+  }
+  if (isset($form_state['field']) && strlen(trim($form_state['field'])) > 0) {
+    $field_name = $form_state['field'];
+  }
+  if (isset($form_state['delta']) && is_numeric($form_state['delta'])) {
+    $delta = $form_state['delta'];
+  }
+  $node = node_load($nid);
+  $node_type = $node->type;
+  $field_items = field_get_items('node', $node, $field_name);
+  $field_value = $field_items[$delta]['value'];
+  $info = field_info_instance('node', $field_name, $node_type);
+  $field_label = $info['label'];
+  $form['value'] = array(
+    '#type' => 'textfield',
+    '#title' => $field_label,
+    '#default_value' => $field_value,
+  );
+  $form['link'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Reference Link'),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Submit'),
+  );
+  return $form;
+}
+
+/**
+ * Implements hook_form_submit().
+ */
+function report_mistake_form_submit(&$form, &$form_state) {
+  global $user;
+  $report = array();
+  if (isset($form_state['nid']) && is_numeric($form_state['nid'])) {
+    $nid = $form_state['nid'];
+  }
+  if (isset($form_state['field']) && strlen(trim($form_state['field'])) > 0) {
+    $field_name = $form_state['field'];
+  }
+  if (isset($form_state['delta']) && is_numeric($form_state['delta'])) {
+    $delta = $form_state['delta'];
+  }
+  if (isset($form_state["values"]['value']) && strlen(trim($form_state["values"]['value'])) > 0) {
+    $field_value = $form_state["values"]['value'];
+  }
+  if (isset($form_state["values"]['link']) && strlen(trim($form_state["values"]['link'])) > 0) {
+    $reference_link = $form_state["values"]['link'];
+  }
+
+  $report = array(
+    'nid' => $nid,
+    'uid' => $user->uid,
+    'field_name' => $field_name,
+    'delta' => $delta,
+    'value' => $field_value,
+    'link' => $reference_link,
+    'created' => REQUEST_TIME,
+    'status' => REPORT_MISTAKE_STATUS_NEW,
+  );
+  report_mistake_save($report);
+
+  $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+}
+
+/**
+ * Save report into database.
+ */
+function report_mistake_save($report) {
+  if (isset($report['report_id']) && is_numeric($report['report_id'])) {
+    $report_id = $report['report_id'];
+  }
+  else {
+    $report_id = db_next_id(db_query('SELECT MAX(report_id) FROM {report_mistake}')->fetchField());
+    $report['report_id'] = $report_id;
+  }
+  drupal_write_record(REPORT_MISTAKE_TABLE, $report);
+  return $report_id;
+}
