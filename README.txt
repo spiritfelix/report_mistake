@@ -12,3 +12,5 @@ Admin user cal accept or ignore the reported "mistake".
 5. Accept or Ignore the report.
 
 Used for Drupal 7.x
+
+test
