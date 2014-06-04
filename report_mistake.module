@@ -47,9 +47,9 @@ function report_mistake_menu() {
     'file' => 'report_mistake.admin.inc',
     'weight' => 2,
   );
-  $items['report_mistake/report/%ctools_js/%/%'] = array(
+  $items['report_mistake/report/%ctools_js/%/%/%'] = array(
     'page callback' => 'report_mistake_ajax_report',
-    'page arguments' => array(2, 3, 4),
+    'page arguments' => array(2, 3, 4, 5),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
@@ -175,10 +175,10 @@ function report_mistake_ajax_report($ajax, $field, $nid, $delta = 0) {
     $form_state = array(
       'ajax' => TRUE,
       'title' => t('Report Mistake Form'),
-      'field' => $field,
-      'nid' => $nid,
-      'delta' => $delta,
     );
+    $form_state['build_info']['args']['field'] = $field;
+    $form_state['build_info']['args']['nid'] = $nid;
+    $form_state['build_info']['args']['delta'] = $delta;
     $output = ctools_modal_form_wrapper('report_mistake_form', $form_state);
     if (!empty($form_state['ajax_commands'])) {
       $output = $form_state['ajax_commands'];
@@ -196,14 +196,15 @@ function report_mistake_ajax_report($ajax, $field, $nid, $delta = 0) {
  */
 function report_mistake_form($form, $form_state) {
   $form = array();
-  if (isset($form_state['nid']) && is_numeric($form_state['nid'])) {
-    $nid = $form_state['nid'];
+  //var_dump($form_state);
+  if (isset($form_state['build_info']['args']['nid']) && is_numeric($form_state['build_info']['args']['nid'])) {
+    $nid = $form_state['build_info']['args']['nid'];
   }
-  if (isset($form_state['field']) && strlen(trim($form_state['field'])) > 0) {
-    $field_name = $form_state['field'];
+  if (isset($form_state['build_info']['args']['field']) && strlen(trim($form_state['build_info']['args']['field'])) > 0) {
+    $field_name = $form_state['build_info']['args']['field'];
   }
-  if (isset($form_state['delta']) && is_numeric($form_state['delta'])) {
-    $delta = $form_state['delta'];
+  if (isset($form_state['build_info']['args']['delta']) && is_numeric($form_state['build_info']['args']['delta'])) {
+    $delta = $form_state['build_info']['args']['delta'];
   }
   $node = node_load($nid);
   $node_type = $node->type;
@@ -211,14 +212,38 @@ function report_mistake_form($form, $form_state) {
   $field_value = $field_items[$delta]['value'];
   $info = field_info_instance('node', $field_name, $node_type);
   $field_label = $info['label'];
-  $form['value'] = array(
-    '#type' => 'textfield',
-    '#title' => $field_label,
-    '#default_value' => $field_value,
+  // $form['value'] = array(
+  //   '#type' => 'textfield',
+  //   '#title' => $field_label,
+  //   '#default_value' => $field_value,
+  // );
+  //-------------test------------------
+  // Set #parents to 'top-level' if it doesn't exist.
+  $form += array('#parents' => array());
+
+  // If no language is provided use the default site language.
+  $options = array(
+    'language' => field_valid_language($node->language),
+    'default' => TRUE,
   );
+  ctools_include('fields');
+  $form['value'] = (array) ctools_field_invoke_field($info, 'form', 'node', $node, $form, $form_state, $options);
+  //-------------/test-----------------
   $form['link'] = array(
     '#type' => 'textfield',
     '#title' => t('Reference Link'),
+  );
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $nid,
+  );
+  $form['field'] = array(
+    '#type' => 'hidden',
+    '#value' => $field_name,
+  );
+  $form['delta'] = array(
+    '#type' => 'hidden',
+    '#value' => $delta,
   );
   $form['submit'] = array(
     '#type' => 'submit',
@@ -233,18 +258,20 @@ function report_mistake_form($form, $form_state) {
 function report_mistake_form_submit(&$form, &$form_state) {
   global $user;
   $report = array();
-  if (isset($form_state['nid']) && is_numeric($form_state['nid'])) {
-    $nid = $form_state['nid'];
+
+  if (isset($form_state["values"]['nid']) && is_numeric($form_state["values"]['nid'])) {
+    $nid = $form_state["values"]['nid'];
   }
-  if (isset($form_state['field']) && strlen(trim($form_state['field'])) > 0) {
-    $field_name = $form_state['field'];
+  if (isset($form_state["values"]['field']) && strlen(trim($form_state["values"]['field'])) > 0) {
+    $field_name = $form_state["values"]['field'];
   }
-  if (isset($form_state['delta']) && is_numeric($form_state['delta'])) {
-    $delta = $form_state['delta'];
+  if (isset($form_state["values"]['delta']) && is_numeric($form_state["values"]['delta'])) {
+    $delta = $form_state["values"]['delta'];
   }
-  if (isset($form_state["values"]['value']) && strlen(trim($form_state["values"]['value'])) > 0) {
-    $field_value = $form_state["values"]['value'];
+  if (isset($form_state["values"]["$field_name"]['und']["$delta"]['value']) && strlen(trim($form_state["values"]["$field_name"]['und']["$delta"]['value'])) > 0) {
+    $field_value = $form_state["values"]["$field_name"]['und']["$delta"]['value'];
   }
+
   if (isset($form_state["values"]['link']) && strlen(trim($form_state["values"]['link'])) > 0) {
     $reference_link = $form_state["values"]['link'];
   }
