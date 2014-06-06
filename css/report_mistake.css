@@ -147,3 +147,7 @@
 .ctools-report-mistake-modal-content .modal-content .modal-throbber-wrapper img {
   margin-top: 100px;
 }
+
+.ctools-report-mistake-modal-content .modal-content {
+  height: auto !important;
+}
