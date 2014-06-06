@@ -1,5 +1,6 @@
 name = Report mistake
 description = Report mistake to the admin of the site.
 core = 7.x
-dependencies[]=ctools
+dependencies[] = ctools
+dependencies[] = entity
 configure = admin/config/report_mistake
