@@ -1,6 +1,6 @@
 .ctools-report-mistake-modal-content {
-  background: none;
-  border: 0;
+  background: none !important;
+  border: 0 !important;
   color: #000000;
   margin: 0;
   padding: 0;
@@ -33,6 +33,7 @@
   line-height: 36px;
   padding: 0 40px;
 }
+.ctools-report-mistake-modal-content table,
 .ctools-report-mistake-modal-content #popups-loading table,
 .ctools-report-mistake-modal-content .popups-box table {
   margin: 0px;
@@ -110,7 +111,6 @@
   -webkit-border-radius-topleft: 0px;
   margin-bottom: 0px;
   background-color: #ff7200;
-  border: 1px solid #ce5c00;
   padding: 4px 10px 5px;
   color: white;
   font-size: 1em;
