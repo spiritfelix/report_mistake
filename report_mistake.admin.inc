@@ -189,6 +189,7 @@ function report_mistake_types_admin_form_submit($form, $form_state) {
   $report_mistake_field_types = $form_state['values']['report_mistake_field_types'];
   variable_set('report_mistake_content_types', $report_mistake_content_types);
   variable_set('report_mistake_field_types', $report_mistake_field_types);
+  drupal_set_message(t('The settings have been saved.'));
   cache_clear_all();
 }
 
