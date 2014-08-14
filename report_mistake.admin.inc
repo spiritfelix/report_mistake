@@ -39,7 +39,7 @@ function report_mistake_types_admin_form($form, &$form_state) {
     );
     $form['report_mistake_content_types']['report_mistake_content_types'] = array(
       '#type' => 'checkboxes',
-      '#description' => t('Select content types to use "Report mistake" module.<strong>Flush Cache</strong> after setting, please.'),
+      '#description' => t('Select content types to use "Report mistake" module.'),
       '#options' => $content_types_options,
       '#default_value' => variable_get('report_mistake_content_types', array('')),
     );
@@ -50,7 +50,7 @@ function report_mistake_types_admin_form($form, &$form_state) {
     );
     $form['report_mistake_field_types']['report_mistake_field_types'] = array(
       '#type' => 'checkboxes',
-      '#description' => t('Select field types to use "Report mistake" module.<strong>Flush Cache</strong> after setting, please.'),
+      '#description' => t('Select field types to use "Report mistake" module.'),
       '#options' => $field_types_options,
       '#default_value' => variable_get('report_mistake_field_types', array('')),
     );
@@ -189,6 +189,8 @@ function report_mistake_types_admin_form_submit($form, $form_state) {
   $report_mistake_field_types = $form_state['values']['report_mistake_field_types'];
   variable_set('report_mistake_content_types', $report_mistake_content_types);
   variable_set('report_mistake_field_types', $report_mistake_field_types);
+  drupal_set_message(t('The settings have been saved.'));
+  cache_clear_all();
 }
 
 /**
